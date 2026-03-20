@@ -1,0 +1,18 @@
+{
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "name": "glacier",
+  "version": "1.0.0",
+  "main": "server.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@sparticuz/chromium": "^143.0.4",
+    "express": "^5.2.1",
+    "playwright-core": "^1.58.2"
+  }
+}
