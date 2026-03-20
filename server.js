@@ -22,8 +22,9 @@ app.get('/glacier', async (req, res) => {
 
     const page = await browser.newPage();
     await page.goto('https://www.glaciernationalparklodges.com/', {
-      waitUntil: 'networkidle',
-    });
+  waitUntil: 'domcontentloaded',
+  timeout: 60000, // increase timeout
+});
 
     const data = await page.evaluate(
       async ({ date, nights }) => {
