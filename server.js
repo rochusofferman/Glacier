@@ -15,7 +15,6 @@ app.get('/glacier', async (req, res) => {
   let browser;
 
   try {
-    // Launch headless Chromium using serverless-compatible binary
     browser = await pwChromium.launch({
       executablePath: await chromium.executablePath(),
       args: chromium.args,
@@ -24,7 +23,7 @@ app.get('/glacier', async (req, res) => {
 
     const page = await browser.newPage();
 
-    // Optional: block images/fonts for speed
+    // Block images/fonts for speed
     await page.route('**/*', (route) => {
       const type = route.request().resourceType();
       if (type === 'image' || type === 'font') route.abort();
@@ -37,9 +36,9 @@ app.get('/glacier', async (req, res) => {
       timeout: 60000,
     });
 
-    await page.waitForTimeout(3000); // let Cloudflare JS run
+    await page.waitForTimeout(3000);
 
-    // Navigate to the Glacier API URL directly in the browser
+    // Navigate to Glacier API
     const apiUrl = `https://webapi.xanterra.net/v1/api/availability/hotels/glaciernationalparklodges?date=${date}&limit=31&is_group=false&nights=${nights}&children=0`;
 
     await page.goto(apiUrl, {
@@ -47,14 +46,15 @@ app.get('/glacier', async (req, res) => {
       timeout: 60000,
     });
 
-    // Get the page content and extract JSON
-    const content = await page.content();
+    // Extract page text (raw JSON)
+    const bodyText = await page.locator('body').innerText();
 
-    // Glacier API returns JSON wrapped in <pre> tags
-    const dataMatch = content.match(/<pre.*?>(.*)<\/pre>/s);
-    if (!dataMatch) throw new Error('Failed to parse Glacier API JSON');
-
-    const data = JSON.parse(dataMatch[1]);
+    let data;
+    try {
+      data = JSON.parse(bodyText);
+    } catch (err) {
+      throw new Error('Failed to parse Glacier API JSON: ' + err.message);
+    }
 
     res.json({ ok: true, data });
   } catch (error) {
