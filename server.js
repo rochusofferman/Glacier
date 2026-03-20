@@ -13,6 +13,7 @@ app.get('/glacier', async (req, res) => {
   }
 
   let browser;
+
   try {
     browser = await pwChromium.launch({
       executablePath: await chromium.executablePath(),
@@ -21,21 +22,30 @@ app.get('/glacier', async (req, res) => {
     });
 
     const page = await browser.newPage();
+
+    // Block images/fonts for speed
+    await page.route('**/*', (route) => {
+      const type = route.request().resourceType();
+      if (type === 'image' || type === 'font') route.abort();
+      else route.continue();
+    });
+
     await page.goto('https://www.glaciernationalparklodges.com/', {
-  waitUntil: 'domcontentloaded',
-  timeout: 60000, // increase timeout
-});
+      waitUntil: 'domcontentloaded',
+      timeout: 60000,
+    });
 
-    const data = await page.evaluate(
-      async ({ date, nights }) => {
-        const url = `https://webapi.xanterra.net/v1/api/availability/hotels/glaciernationalparklodges?date=${date}&limit=31&is_group=false&nights=${nights}&children=0`;
-        const response = await fetch(url, { cache: 'no-store' });
-        if (!response.ok) throw new Error('Glacier API status:' + response.status);
-        return response.json();
-      },
-      { date, nights: Number(nights) }
-    );
+    await page.waitForTimeout(3000);
 
+    const apiUrl = `https://webapi.xanterra.net/v1/api/availability/hotels/glaciernationalparklodges?date=${date}&limit=31&is_group=false&nights=${nights}&children=0`;
+
+    const response = await page.request.get(apiUrl);
+
+    if (!response.ok()) {
+      throw new Error(`Glacier API status: ${response.status()}`);
+    }
+
+    const data = await response.json();
     res.json({ ok: true, data });
   } catch (error) {
     console.error('Glacier scrape error:', error);
